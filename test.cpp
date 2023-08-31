@@ -3,6 +3,7 @@
 #include <iostream>
 #include <Eigen/Dense>
 #include "shader.h"
+#include "utils.h"
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
@@ -34,11 +35,11 @@ GLFWwindow* InitWindow(int width, int height) {
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     //create a window object. This window object holds all the windowing data and is required by most of GLFW's other functions.
     GLFWwindow* window = glfwCreateWindow(width, height, "LearnOpenGL", NULL, NULL);
-    if (window == NULL)
+    if (window == nullptr)
     {
         std::cout << "Failed to create GLFW window" << std::endl;
         glfwTerminate();
-        return NULL;
+        return nullptr;
     }
     glfwMakeContextCurrent(window);
 
@@ -46,7 +47,7 @@ GLFWwindow* InitWindow(int width, int height) {
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
     {
         std::cout << "Failed to initialize GLAD" << std::endl;
-        return NULL;
+        return nullptr;
     }
     glViewport(0, 0, width, height);
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
@@ -84,8 +85,9 @@ unsigned int GenerateTexture(const char* fileName, const bool alpha = false, con
 
 
 int main() {
-
-    auto window = InitWindow(1200,800);
+	constexpr int width = 1200;
+	constexpr int height = 800;
+	const auto window = InitWindow(1200,800);
     if (!window) {
         return -1;
     }
@@ -98,16 +100,16 @@ int main() {
 
 #pragma region Triangle with vertex color
     //Generate a Vertex Array Object
-    unsigned int VAO_triangle;
-    glGenVertexArrays(1, &VAO_triangle);
+    unsigned int vao_triangle;
+    glGenVertexArrays(1, &vao_triangle);
     // 1. bind Vertex Array Object
-    glBindVertexArray(VAO_triangle);
+    glBindVertexArray(vao_triangle);
     //generate a VBO
-    unsigned int VBO;
-    glGenBuffers(1, &VBO);
+    unsigned int vbo_vertColor;
+    glGenBuffers(1, &vbo_vertColor);
 
     // A simple vertex array
-    float vertices_triangle[] = {
+	constexpr float vertices_triangle[] = {
         // positions         // colors
          0.5f, -0.5f, 0.0f,  1.0f, 0.0f, 0.0f,   // bottom right
         -0.5f, -0.5f, 0.0f,  0.0f, 1.0f, 0.0f,   // bottom left
@@ -115,7 +117,7 @@ int main() {
     };
 
     // 2. copy our vertices array in a buffer for OpenGL to use
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo_vertColor);
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices_triangle), vertices_triangle, GL_STATIC_DRAW);
     // 3. then set our vertex attributes pointers
     // position attribute
@@ -128,27 +130,27 @@ int main() {
 
 #pragma region Rect changing color
     //Using elements and indices 
-    unsigned int VAO_rect;
-    glGenVertexArrays(1, &VAO_rect);
-    glBindVertexArray(VAO_rect);
-    unsigned int VBO_rect;
-    glGenBuffers(1, &VBO_rect);
-    float vertices_rect[] = {
+    unsigned int vao_rect;
+    glGenVertexArrays(1, &vao_rect);
+    glBindVertexArray(vao_rect);
+    unsigned int vbo_rect;
+    glGenBuffers(1, &vbo_rect);
+	constexpr float vertices_rect[] = {
          0.5f,  0.5f, 0.0f,  // top right
          0.5f, -0.5f, 0.0f,  // bottom right
         -0.5f, -0.5f, 0.0f,  // bottom left
         -0.5f,  0.5f, 0.0f   // top left 
     };
-    glBindBuffer(GL_ARRAY_BUFFER, VBO_rect);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo_rect);
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices_rect), vertices_rect, GL_STATIC_DRAW);
-    unsigned int indices[] = {  // note that we start from 0!
+	const unsigned int indices[] = {  // note that we start from 0!
         0, 1, 3,   // first triangle
         1, 2, 3    // second triangle
     };
     //Get an element buffer instead
-    unsigned int EBO;
-    glGenBuffers(1, &EBO);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+    unsigned int ebo;
+    glGenBuffers(1, &ebo);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
@@ -161,10 +163,10 @@ int main() {
     glGenVertexArrays(1, &vao_txtr);
     glBindVertexArray(vao_txtr);
 
-    auto texture1 = GenerateTexture("uv.jpg");
-    auto texture2 = GenerateTexture("face.png",true,true);
+	const auto texture1 = GenerateTexture("uv.jpg");
+	const auto texture2 = GenerateTexture("face.png",true,true);
 
-    float vertices_txtr[] = {
+	constexpr float vertices_txtr[] = {
 	    // positions          // colors           // texture coords
 	    0.5f,  0.5f, 0.0f,   1.0f, 0.0f, 0.0f,   1.0f, 1.0f,   // top right
 	    0.5f, -0.5f, 0.0f,   0.0f, 1.0f, 0.0f,   1.0f, 0.0f,   // bottom right
@@ -191,13 +193,19 @@ int main() {
     program_txtr.setInt("texture1", 0);
     program_txtr.setInt("texture2", 1);
 #pragma endregion
-    Matrix4f mat_trans = Matrix4f::Identity();
-    Eigen::Quaternion<float> quat;
-	quat = Eigen::AngleAxis<float>(PI*0.25, Vector3f(0,0,1));
-    mat_trans.block<3, 3>(0, 0) = quat.normalized().toRotationMatrix();
-    std::cout << mat_trans << std::endl;
-    program_txtr.setMat4f("transform", mat_trans);
 
+#pragma region Transformation matrices
+	Matrix4f mat_trans = Matrix4f::Identity();
+	Eigen::Quaternion<float> quat;
+	quat = Eigen::AngleAxis<float>(PI*0.25, Vector3f(0,0,1));
+	mat_trans.block<3, 3>(0, 0) = quat.normalized().toRotationMatrix();
+	auto mat_pers = GetMatPerspectiveProjection(PI * 0.25, (float)width / (float)height, 0.1, 100.0);
+	auto mat_view = GetMatTranslation(0,0,-3);
+	program_txtr.setMat4f("model", mat_trans);
+	program_txtr.setMat4f("view", mat_view);
+	program_txtr.setMat4f("projection", mat_pers);
+
+#pragma endregion
 
     //The main render loop
     while (!glfwWindowShouldClose(window))

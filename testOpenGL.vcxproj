@@ -136,6 +136,7 @@
     <ClCompile Include="glad.c" />
     <ClCompile Include="shader.h" />
     <ClCompile Include="test.cpp" />
+    <ClCompile Include="utils.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="blue.frag" />
