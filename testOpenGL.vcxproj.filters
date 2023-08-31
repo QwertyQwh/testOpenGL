@@ -38,6 +38,9 @@
     <None Include="blue.frag">
       <Filter>Source Files\shaders</Filter>
     </None>
+    <None Include="txtr.frag">
+      <Filter>Source Files\shaders</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stb_image.h">

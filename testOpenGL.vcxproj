@@ -139,6 +139,7 @@
   <ItemGroup>
     <None Include="blue.frag" />
     <None Include="orange.frag" />
+    <None Include="txtr.frag" />
     <None Include="vertex.vert" />
   </ItemGroup>
   <ItemGroup>
