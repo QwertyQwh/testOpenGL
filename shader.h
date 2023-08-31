@@ -3,6 +3,7 @@
 #define SHADER_H
 
 #include <glad/glad.h> // include glad to get all the required OpenGL headers
+#include <Eigen/Dense>
 
 #include <string>
 #include <fstream>
@@ -117,6 +118,10 @@ public:
     void setFloat4(const std::string& name, float val_0, float val_1, float val_2, float val_3) const
     {
         glUniform4f(glGetUniformLocation(ID, name.c_str()), val_0, val_1, val_2, val_3);
+    }
+    void setMat4f(const std::string& name, Eigen::Matrix4f mat)
+    {
+        glUniformMatrix4fv(glGetUniformLocation(ID, name.c_str()), 1, GL_FALSE, mat.data());
     }
 
 };
