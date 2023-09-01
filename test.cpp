@@ -23,7 +23,7 @@ float lastFrame = 0.0f; // Time of last frame
 //Key Press Input
 void processInput(GLFWwindow* window)
 {
-    const float cameraSpeed = 0.005f; // adjust accordingly
+    const float cameraSpeed = 2.5f * deltaTime; // adjust accordingly
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
@@ -70,6 +70,7 @@ GLFWwindow* InitWindow(int width, int height) {
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
     return window;
 }
+
 unsigned int GenerateTexture(const char* fileName, const bool alpha = false, const bool flipY = false)
 {
     unsigned int texture1;
@@ -216,6 +217,12 @@ int main() {
     //The main render loop
     while (!glfwWindowShouldClose(window))
     {
+        //Calculate Time
+        float currentFrame = glfwGetTime();
+        deltaTime = currentFrame - lastFrame;
+        lastFrame = currentFrame;
+
+
         //Input
         processInput(window);
 
@@ -224,7 +231,7 @@ int main() {
         glClear(GL_COLOR_BUFFER_BIT);
         //clear depth
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    	float timeValue = glfwGetTime();
+
 
 
 
@@ -248,7 +255,7 @@ int main() {
 #pragma region Transformation matrices
         Matrix4f mat_trans = Matrix4f::Identity();
         Eigen::Quaternion<float> quat;
-        quat = Eigen::AngleAxis<float>(timeValue*PI * 0.25, Vector3f(0, 0, 1));
+        quat = Eigen::AngleAxis<float>(currentFrame *PI * 0.25, Vector3f(0, 0, 1));
         mat_trans.block<3, 3>(0, 0) = quat.normalized().toRotationMatrix();
         program_txtr.setMat4f("model", mat_trans);
 
