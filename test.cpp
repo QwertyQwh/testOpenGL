@@ -12,11 +12,28 @@ using Eigen::Vector4f;
 using Eigen::Vector3f;
 # define PI  3.14159265358979323846f
 
+//Some global variables we will access
+Vector3f cameraPos(0, 0, 3.0f);
+Vector3f cameraFront(0, 0, -1.0f);
+Vector3f cameraUp(0, 1.0, 0.0f);
+float deltaTime = 0.0f;	// Time between current frame and last frame
+float lastFrame = 0.0f; // Time of last frame
+
+
 //Key Press Input
 void processInput(GLFWwindow* window)
 {
+    const float cameraSpeed = 0.005f; // adjust accordingly
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
+    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+        cameraPos += cameraSpeed * cameraFront;
+    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+        cameraPos -= cameraSpeed * cameraFront;
+    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+        cameraPos -= cameraFront.cross(cameraUp).normalized()* cameraSpeed;
+    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+        cameraPos += cameraFront.cross(cameraUp).normalized()* cameraSpeed;
 }
 
 //Callback function for window resizing
@@ -91,7 +108,7 @@ int main() {
     if (!window) {
         return -1;
     }
-
+    glEnable(GL_DEPTH_TEST);
     // Create the shader program
     Shader program_orange("vertex.vert", "orange.frag");
     Shader program_blue("vertex.vert", "blue.frag");
@@ -194,18 +211,7 @@ int main() {
     program_txtr.setInt("texture2", 1);
 #pragma endregion
 
-#pragma region Transformation matrices
-	Matrix4f mat_trans = Matrix4f::Identity();
-	Eigen::Quaternion<float> quat;
-	quat = Eigen::AngleAxis<float>(PI*0.25, Vector3f(0,0,1));
-	mat_trans.block<3, 3>(0, 0) = quat.normalized().toRotationMatrix();
-	auto mat_pers = GetMatPerspectiveProjection(PI * 0.25, (float)width / (float)height, 0.1, 100.0);
-	auto mat_view = GetMatTranslation(0,0,-3);
-	program_txtr.setMat4f("model", mat_trans);
-	program_txtr.setMat4f("view", mat_view);
-	program_txtr.setMat4f("projection", mat_pers);
 
-#pragma endregion
 
     //The main render loop
     while (!glfwWindowShouldClose(window))
@@ -216,6 +222,9 @@ int main() {
         //clearing color
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
+        //clear depth
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    	float timeValue = glfwGetTime();
 
 
 
@@ -223,7 +232,6 @@ int main() {
          //4. draw the object
 //#pragma region Draw Rect with changing color
 //        program_blue.use();
-//        float timeValue = glfwGetTime();
 //        float blueValue = sin(timeValue) / 2.0f + 0.5f;
 //        program_blue.setFloat4("ourColor", 0.f, 0.f, blueValue, 1.0f);
 //        glBindVertexArray(VAO_rect);
@@ -235,6 +243,26 @@ int main() {
 //        glBindVertexArray(VAO_triangle);
 //        glDrawArrays(GL_TRIANGLES, 0, 3);
 //#pragma endregion
+
+
+#pragma region Transformation matrices
+        Matrix4f mat_trans = Matrix4f::Identity();
+        Eigen::Quaternion<float> quat;
+        quat = Eigen::AngleAxis<float>(timeValue*PI * 0.25, Vector3f(0, 0, 1));
+        mat_trans.block<3, 3>(0, 0) = quat.normalized().toRotationMatrix();
+        program_txtr.setMat4f("model", mat_trans);
+
+        // Not the actual Direction, reversed
+     
+
+
+        auto mat_view = GetLookAtMat(cameraPos, cameraPos + cameraFront, cameraUp);
+    	program_txtr.setMat4f("view", mat_view);
+        auto mat_pers = GetMatPerspectiveProjection(PI * 0.25, (float)width / (float)height, 0.1, 100.0);
+        program_txtr.setMat4f("projection", mat_pers);
+
+#pragma endregion
+
 
         program_txtr.use();
         glActiveTexture(GL_TEXTURE0);
