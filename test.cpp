@@ -4,21 +4,29 @@
 #include <Eigen/Dense>
 #include "shader.h"
 #include "utils.h"
+#include <algorithm>
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 using Eigen::Matrix4f;
 using Eigen::Vector4f;
 using Eigen::Vector3f;
+using namespace std;
 # define PI  3.14159265358979323846f
 
 //Some global variables we will access
+constexpr int width = 1200;
+constexpr int height = 800;
 Vector3f cameraPos(0, 0, 3.0f);
 Vector3f cameraFront(0, 0, -1.0f);
 Vector3f cameraUp(0, 1.0, 0.0f);
 float deltaTime = 0.0f;	// Time between current frame and last frame
 float lastFrame = 0.0f; // Time of last frame
-
+float lastX = width/2, lastY = height/2;
+float yaw = -PI/2;
+float pitch = 0.0f;
+bool firstMouse = false;
+float fov = PI * 0.25;
 
 //Key Press Input
 void processInput(GLFWwindow* window)
@@ -36,6 +44,29 @@ void processInput(GLFWwindow* window)
         cameraPos += cameraFront.cross(cameraUp).normalized()* cameraSpeed;
 }
 
+void mouse_callback(GLFWwindow* window, double xpos, double ypos)
+{
+    if (firstMouse) // initially set to true
+    {
+        lastX = xpos;
+        lastY = ypos;
+        firstMouse = false;
+    }
+    float xoffset = xpos - lastX;
+    float yoffset = lastY - ypos;
+    lastX = xpos;
+    lastY = ypos;
+    float sensitivity = 0.001f;
+    xoffset *= sensitivity;
+    yoffset *= sensitivity;
+    yaw += xoffset;
+    pitch = std::clamp(pitch+yoffset, -1.55f, 1.55f);
+
+    Vector3f direction (cos(yaw) * cos(pitch), sin(pitch), sin(yaw) * cos(pitch));
+    cameraFront = direction.normalized();
+}
+
+
 //Callback function for window resizing
 void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 {
@@ -43,7 +74,12 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 }
 
 
+void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
+{
+    fov -= (float)yoffset*0.01;
+    fov = clamp(fov, 0.1f, PI * 0.5f);
 
+}
 
 GLFWwindow* InitWindow(int width, int height) {
     glfwInit();
@@ -103,18 +139,20 @@ unsigned int GenerateTexture(const char* fileName, const bool alpha = false, con
 
 
 int main() {
-	constexpr int width = 1200;
-	constexpr int height = 800;
+
 	const auto window = InitWindow(1200,800);
     if (!window) {
         return -1;
     }
     glEnable(GL_DEPTH_TEST);
+    //This hides the cursor and limits its movement within the window
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    glfwSetCursorPosCallback(window, mouse_callback);
+    glfwSetScrollCallback(window, scroll_callback);
     // Create the shader program
     Shader program_orange("vertex.vert", "orange.frag");
     Shader program_blue("vertex.vert", "blue.frag");
     Shader program_txtr("vertex.vert", "txtr.frag");
-
 
 #pragma region Triangle with vertex color
     //Generate a Vertex Array Object
@@ -255,7 +293,7 @@ int main() {
 #pragma region Transformation matrices
         Matrix4f mat_trans = Matrix4f::Identity();
         Eigen::Quaternion<float> quat;
-        quat = Eigen::AngleAxis<float>(currentFrame *PI * 0.25, Vector3f(0, 0, 1));
+        quat = Eigen::AngleAxis<float>(PI * 0.25, Vector3f(0, 0, 1));
         mat_trans.block<3, 3>(0, 0) = quat.normalized().toRotationMatrix();
         program_txtr.setMat4f("model", mat_trans);
 
@@ -265,7 +303,7 @@ int main() {
 
         auto mat_view = GetLookAtMat(cameraPos, cameraPos + cameraFront, cameraUp);
     	program_txtr.setMat4f("view", mat_view);
-        auto mat_pers = GetMatPerspectiveProjection(PI * 0.25, (float)width / (float)height, 0.1, 100.0);
+        auto mat_pers = GetMatPerspectiveProjection(fov, (float)width / (float)height, 0.1, 100.0);
         program_txtr.setMat4f("projection", mat_pers);
 
 #pragma endregion

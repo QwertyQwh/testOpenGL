@@ -49,4 +49,5 @@ inline Matrix4f GetLookAtMat(const Vector3f pos, const Vector3f target, const Ve
 	return transform.matrix();
 }
 
+
 #endif
